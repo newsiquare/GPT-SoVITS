@@ -38,7 +38,7 @@ echo "=== 安裝 psmisc（釋放 GPU 記憶體會用到） ==="
 sudo apt install -y psmisc
 
 echo "=== 執行 GPT-SoVITS 安裝腳本（下載模型） ==="
-bash install.sh --device CU124 --source HF --download-uvr5
+bash install_cu124.sh --device CU124 --source HF --download-uvr5
 
 echo "=== 安裝完成 ==="
 echo "要啟用環境，請執行："
