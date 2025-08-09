@@ -25,7 +25,7 @@ python3.10 -m venv gpttts
 source gpttts/bin/activate
 
 echo "=== 下載 GPT-SoVITS 專案 ==="
-git clone https://github.com/RVC-Boss/GPT-SoVITS
+git clone https://github.com/newsiquare/GPT-SoVITS
 cd GPT-SoVITS
 
 echo "=== 安裝 ffmpeg（避免 ffprobe 問題） ==="
