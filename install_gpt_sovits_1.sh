@@ -3,7 +3,7 @@
 # 適用 Ubuntu 20.04/22.04，需有 sudo 權限
 
 echo "=== 下載 GPT-SoVITS 專案 ==="
-git clone https://github.com/RVC-Boss/GPT-SoVITS
+git clone https://github.com/newsiquare/GPT-SoVITS
 cd GPT-SoVITS
 
 echo "=== 安裝 ffmpeg（避免 ffprobe 問題） ==="
