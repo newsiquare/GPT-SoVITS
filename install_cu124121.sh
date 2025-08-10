@@ -2,6 +2,7 @@
 
 # cd into GPT-SoVITS Base Path
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
 cd "$SCRIPT_DIR" || exit 1
 
 RESET="\033[0m"
@@ -13,6 +14,7 @@ SUCCESS="\033[1;34m[SUCCESS]: $RESET"
 
 set -eE
 set -o errtrace
+
 trap 'on_error $LINENO "$BASH_COMMAND" $?' ERR
 
 # shellcheck disable=SC2317
@@ -36,6 +38,7 @@ run_conda_quiet() {
         exit 1
     }
 }
+
 run_pip_quiet() {
     local output
     output=$(pip install "$@" 2>&1) || {
@@ -43,13 +46,14 @@ run_pip_quiet() {
         exit 1
     }
 }
+
 run_wget_quiet() {
     if wget --tries=25 --wait=5 --read-timeout=40 -q --show-progress "$@" 2>&1; then
         tput cuu1 && tput el
     else
         echo -e "${ERROR} Wget failed"
         exit 1
-    }
+    fi
 }
 
 if ! command -v conda &>/dev/null; then
@@ -72,14 +76,14 @@ print_help() {
     echo ""
     echo "Options:"
     echo "  --device   CU121|CU124|CU126|CU128|ROCM|MPS|CPU    Specify the Device (REQUIRED)"
-    echo "  --source   HF|HF-Mirror|ModelScope                  Specify the model source (REQUIRED)"
-    echo "  --download-uvr5                                    Enable downloading the UVR5 model"
-    echo "  -h, --help                                         Show this help message and exit"
+    echo "  --source   HF|HF-Mirror|ModelScope     Specify the model source (REQUIRED)"
+    echo "  --download-uvr5                        Enable downloading the UVR5 model"
+    echo "  -h, --help                             Show this help message and exit"
     echo ""
     echo "Examples:"
     echo "  bash install.sh --device CU128 --source HF --download-uvr5"
+    echo "  bash install.sh --device MPS --source ModelScope"
     echo "  bash install.sh --device CU124 --source HF-Mirror"
-    echo "  bash install.sh --device CU121 --source ModelScope"
 }
 
 # Show help if no arguments provided
@@ -93,33 +97,66 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
     --source)
         case "$2" in
-        HF)         USE_HF=true ;;
-        HF-Mirror)  USE_HF_MIRROR=true ;;
-        ModelScope) USE_MODELSCOPE=true ;;
-        *)  echo -e "${ERROR}Error: Invalid Download Source: $2"
+        HF)
+            USE_HF=true
+            ;;
+        HF-Mirror)
+            USE_HF_MIRROR=true
+            ;;
+        ModelScope)
+            USE_MODELSCOPE=true
+            ;;
+        *)
+            echo -e "${ERROR}Error: Invalid Download Source: $2"
             echo -e "${ERROR}Choose From: [HF, HF-Mirror, ModelScope]"
-            exit 1 ;;
+            exit 1
+            ;;
         esac
         shift 2
         ;;
     --device)
         case "$2" in
-        CU121) CUDA=121; USE_CUDA=true ;;
-        CU124) CUDA=124; USE_CUDA=true ;;
-        CU126) CUDA=126; USE_CUDA=true ;;
-        CU128) CUDA=128; USE_CUDA=true ;;
-        ROCM)  USE_ROCM=true ;;
-        MPS|CPU) USE_CPU=true ;;
-        *)  echo -e "${ERROR}Error: Invalid Device: $2"
-            echo -e "${ERROR}Choose From: [CU121, CU124, CU126, CU128, ROCM, MPS, CPU]"
-            exit 1 ;;
+        CU121)
+            CUDA=121
+            USE_CUDA=true
+            ;;
+        CU124)
+            CUDA=124
+            USE_CUDA=true
+            ;;
+        CU126)
+            CUDA=126
+            USE_CUDA=true
+            ;;
+        CU128)
+            CUDA=128
+            USE_CUDA=true
+            ;;
+        ROCM)
+            USE_ROCM=true
+            ;;
+        MPS)
+            USE_CPU=true
+            ;;
+        CPU)
+            USE_CPU=true
+            ;;
+        *)
+            echo -e "${ERROR}Error: Invalid Device: $2"
+            echo -e "${ERROR}Choose From: [CU121CU124, CU126, CU128, ROCM, MPS, CPU]"
+            exit 1
+            ;;
         esac
         shift 2
         ;;
     --download-uvr5)
-        DOWNLOAD_UVR5=true; shift ;;
-    -h|--help)
-        print_help; exit 0 ;;
+        DOWNLOAD_UVR5=true
+        shift
+        ;;
+    -h | --help)
+        print_help
+        exit 0
+        ;;
     *)
         echo -e "${ERROR}Unknown Argument: $1"
         echo ""
@@ -135,6 +172,7 @@ if ! $USE_CUDA && ! $USE_ROCM && ! $USE_CPU; then
     print_help
     exit 1
 fi
+
 if ! $USE_HF && ! $USE_HF_MIRROR && ! $USE_MODELSCOPE; then
     echo -e "${ERROR}Error: Download Source is REQUIRED"
     echo ""
@@ -143,12 +181,16 @@ if ! $USE_HF && ! $USE_HF_MIRROR && ! $USE_MODELSCOPE; then
 fi
 
 case "$(uname -m)" in
-x86_64|amd64) SYSROOT_PKG="sysroot_linux-64>=2.28" ;;
-aarch64|arm64) SYSROOT_PKG="sysroot_linux-aarch64>=2.28" ;;
+x86_64 | amd64) SYSROOT_PKG="sysroot_linux-64>=2.28" ;;
+aarch64 | arm64) SYSROOT_PKG="sysroot_linux-aarch64>=2.28" ;;
 ppc64le) SYSROOT_PKG="sysroot_linux-ppc64le>=2.28" ;;
-*) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
+*)
+    echo "Unsupported architecture: $(uname -m)"
+    exit 1
+    ;;
 esac
 
+# Install build tools
 echo -e "${INFO}Detected system: $(uname -s) $(uname -r) $(uname -m)"
 if [ "$(uname)" != "Darwin" ]; then
     gcc_major_version=$(command -v gcc >/dev/null 2>&1 && gcc -dumpversion | cut -d. -f1 || echo 0)
@@ -171,8 +213,10 @@ else
         echo -e "${INFO}Waiting For Xcode Command Line Tools Installation Complete..."
         while true; do
             sleep 20
+
             if xcode-select -p &>/dev/null; then
-                echo -e "${SUCCESS}Xcode Command Line Tools Installed"; break
+                echo -e "${SUCCESS}Xcode Command Line Tools Installed"
+                break
             else
                 echo -e "${INFO}Installing，Please Wait..."
             fi
@@ -221,6 +265,7 @@ if [ ! -d "GPT_SoVITS/pretrained_models/sv" ]; then
     echo -e "${INFO}Downloading Pretrained Models..."
     rm -rf pretrained_models.zip
     run_wget_quiet "$PRETRINED_URL"
+
     unzip -q -o pretrained_models.zip -d GPT_SoVITS
     rm -rf pretrained_models.zip
     echo -e "${SUCCESS}Pretrained Models Downloaded"
@@ -233,6 +278,7 @@ if [ ! -d "GPT_SoVITS/text/G2PWModel" ]; then
     echo -e "${INFO}Downloading G2PWModel.."
     rm -rf G2PWModel.zip
     run_wget_quiet "$G2PW_URL"
+
     unzip -q -o G2PWModel.zip -d GPT_SoVITS/text
     rm -rf G2PWModel.zip
     echo -e "${SUCCESS}G2PWModel Downloaded"
@@ -243,12 +289,13 @@ fi
 
 if [ "$DOWNLOAD_UVR5" = "true" ]; then
     if find -L "tools/uvr5/uvr5_weights" -mindepth 1 ! -name '.gitignore' | grep -q .; then
-        echo -e "${INFO}UVR5 Models Exists"
+        echo -e"${INFO}UVR5 Models Exists"
         echo -e "${INFO}Skip Downloading UVR5 Models"
     else
         echo -e "${INFO}Downloading UVR5 Models..."
         rm -rf uvr5_weights.zip
         run_wget_quiet "$UVR5_URL"
+
         unzip -q -o uvr5_weights.zip -d tools/uvr5
         rm -rf uvr5_weights.zip
         echo -e "${SUCCESS}UVR5 Models Downloaded"
@@ -284,7 +331,7 @@ if [ "$USE_ROCM" = true ] && [ "$WORKFLOW" = false ]; then
 fi
 
 if [ "$USE_CUDA" = true ] && [ "$WORKFLOW" = false ]; then
-    if   [ "$CUDA" = 128 ]; then
+    if [ "$CUDA" = 128 ]; then
         echo -e "${INFO}Installing PyTorch For CUDA 12.8..."
         run_pip_quiet torch torchaudio --index-url "https://download.pytorch.org/whl/cu128"
     elif [ "$CUDA" = 126 ]; then
@@ -310,9 +357,13 @@ fi
 echo -e "${SUCCESS}PyTorch Installed"
 
 echo -e "${INFO}Installing Python Dependencies From requirements.txt..."
+
 hash -r
+
 run_pip_quiet -r extra-req.txt --no-deps
+
 run_pip_quiet -r requirements.txt
+
 echo -e "${SUCCESS}Python Dependencies Installed"
 
 PY_PREFIX=$(python -c "import sys; print(sys.prefix)")
