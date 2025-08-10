@@ -143,7 +143,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo -e "${ERROR}Error: Invalid Device: $2"
-            echo -e "${ERROR}Choose From: [CU121CU124, CU126, CU128, ROCM, MPS, CPU]"
+            echo -e "${ERROR}Choose From: [CU121, CU124, CU126, CU128, ROCM, MPS, CPU]"
             exit 1
             ;;
         esac
